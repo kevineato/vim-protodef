@@ -263,21 +263,3 @@ function! protodef#ReturnSkeletonsFromPrototypesForCurrentBuffer(opts)
   " Join up the result into a single string
   return join(full, "\n")
 endfunction
-
-"
-" s:MakeMapping()
-"
-" Simply maps the appropriate key to run the
-" ReturnSkeletonsFromPrototypesForCurrentBuffer() function.
-"
-function! protodef#MakeMapping()
-  if !exists('g:disable_protodef_mapping')
-    nmap <buffer> <silent> <leader>PP :set paste<cr>i<c-r>=protodef#ReturnSkeletonsFromPrototypesForCurrentBuffer({})<cr><esc>='[:set nopaste<cr>:Format<CR>
-    nmap <buffer> <silent> <leader>PN :set paste<cr>i<c-r>=protodef#ReturnSkeletonsFromPrototypesForCurrentBuffer({'includeNS' : 0})<cr><esc>='[:set nopaste<cr>:Format<CR>
-  endif
-endfunction
-
-augroup protodef_cpp_mapping
-  au! BufEnter *.cpp,*.C,*.cxx,*.cc,*.CC call protodef#MakeMapping()
-augroup END
-
