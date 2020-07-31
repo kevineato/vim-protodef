@@ -221,10 +221,16 @@ function! protodef#ReturnSkeletonsFromPrototypesForCurrentBuffer(opts)
     let params = substitute(params, '\s*=\s*[^,]\+', '', 'g') " XXX batz deleted the reliance on ) in the char class
     let params = escape(params, '~*&\\')
     let proto = substitute(proto, '(\_.*$', '(' . params . tail, '') " XXX batz changed to replace the parens/tail stripped off
+    let params_names = []
+    let params_split = filter(split(params, ' ', 0), '!empty(v:val)')
+    for i in range(len(params_split))
+      if params_split[i] =~# ',' || i == len(params_split) - 1
+        call add(params_names, substitute(params_split[i], '[^a-zA-Z0-9_]', '', ''))
+      endif
+    endfor
     " Set up the search expression so that we can check to see if what we're going to
     " put into the buffer is already there or not
     let protosearch = escape(proto, '~*')
-    echom proto
     " put optional spaces around word boundaries
     let protosearch = substitute(protosearch, '\<\(.\{-}\)\>', '\\_s*\1\\_s*', 'g')
     " convert explicit whitspace to optional whitespace
@@ -232,6 +238,9 @@ function! protodef#ReturnSkeletonsFromPrototypesForCurrentBuffer(opts)
     " there are probably tons of repeated \_s* directives in the regex, which is going
     " to kill the VIM regex engine so we'll squeeze these together
     let protosearch = substitute(protosearch, '\%\(\\_s\*\)\+', '\\_s*', 'g')
+    for val in params_names
+      let protosearch = substitute(protosearch, val, '.\\+', '')
+    endfor
     " Now let's do the check to see if the prototype is already in the buffer
     if search(protosearch, 'nw') == 0 && match(header_contents, protosearch) == -1
       " it's not so start creating the entry
