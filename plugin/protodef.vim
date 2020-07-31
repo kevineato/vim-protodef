@@ -225,7 +225,8 @@ function! protodef#ReturnSkeletonsFromPrototypesForCurrentBuffer(opts)
     let params_split = filter(split(params, ' ', 0), '!empty(v:val)')
     for i in range(len(params_split))
       if params_split[i] =~# ',' || i == len(params_split) - 1
-        call add(params_names, substitute(params_split[i], '[^a-zA-Z0-9_]', '', ''))
+        " Remove all extra characters and newlines from the parameter names
+        call add(params_names, substitute(params_split[i], '\_W\+', '', ''))
       endif
     endfor
     " Set up the search expression so that we can check to see if what we're going to
