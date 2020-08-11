@@ -208,12 +208,13 @@ function! protodef#ReturnSkeletonsFromPrototypesForCurrentBuffer(opts)
   if !filereadable(companion)
     return ''
   endif
-  let header_contents = ''
+  let header_contents = []
   for line in readfile(companion)
-    let header_contents .= line
+    call add(header_contents, line)
   endfor
   for proto in protos
     " Clean out the default arguments as these don't belong in the implementation file
+    let func_name = matchstr(proto, '\<\w\+\>\%(\s*(\)\@=')
     let params = matchstr(proto, '(\_.*$')
     let params = substitute(params, '^(', '', '') " XXX batz added to strip the leading (
     let tail   = matchstr(params, ')[^)]*$') " XXX bats added to strip the trail )...
@@ -222,11 +223,14 @@ function! protodef#ReturnSkeletonsFromPrototypesForCurrentBuffer(opts)
     let params = escape(params, '~*&\\')
     let proto = substitute(proto, '(\_.*$', '(' . params . tail, '') " XXX batz changed to replace the parens/tail stripped off
     let params_names = []
+    let namespaces = []
     let params_split = filter(split(params, ' ', 0), '!empty(v:val)')
     for i in range(len(params_split))
       if params_split[i] =~# ',' || i == len(params_split) - 1
         " Remove all extra characters and newlines from the parameter names
         call add(params_names, substitute(params_split[i], '\_W\+', '', ''))
+      elseif params_split[i] =~# '::'
+        call add(namespaces, substitute(params_split[i], '^\(\w\{-}\)::.\+$', '\1', ''))
       endif
     endfor
     " Set up the search expression so that we can check to see if what we're going to
@@ -242,8 +246,12 @@ function! protodef#ReturnSkeletonsFromPrototypesForCurrentBuffer(opts)
     for val in params_names
       let protosearch = substitute(protosearch, val, '.\\+', '')
     endfor
+    for val in uniq(namespaces)
+      let protosearch = substitute(protosearch, '\%((.*\)\@<=' . val . '\\_s\*::', '\\%\\(\\_s*\\w\\+\\_s*::\\)\\+', 'g')
+    endfor
     " Now let's do the check to see if the prototype is already in the buffer
-    if search(protosearch, 'nw') == 0 && match(header_contents, protosearch) == -1
+    if search(protosearch, 'nw') == 0 && match(header_contents, protosearch) == -1 &&
+     \ header_contents[match(header_contents, func_name) - 1] !~# 'template'
       " it's not so start creating the entry
       call add(full, proto)
       call add(full, "{")
